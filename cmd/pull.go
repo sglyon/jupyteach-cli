@@ -4,8 +4,9 @@ Copyright © 2024 Spencer Lyon spencerlyon2@gmail.com
 package cmd
 
 import (
-	"fmt"
+	"log"
 
+	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +16,13 @@ var pullCmd = &cobra.Command{
 	Short: "Pull changes from the Jupyteach application to local directory",
 	Long:  `TODO: long description`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("pull called")
+		path, err := cmd.Flags().GetString("path")
+		if err != nil {
+			log.Fatal("Must provide a path")
+		}
+		git.CheckCleanFatal(path)
+		log.Println("pull called")
+		log.Println(args)
 	},
 }
 
