@@ -1,4 +1,4 @@
-module github.com/sglyon/jupyteach-cli
+module github.com/sglyon/jupyteach
 
 go 1.22.1
 

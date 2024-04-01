@@ -1,6 +1,5 @@
 /*
 Copyright © 2024 Spencer Lyon spencerlyon2@gmail.com
-
 */
 package cmd
 
@@ -13,13 +12,8 @@ import (
 // checkCmd represents the check command
 var checkCmd = &cobra.Command{
 	Use:   "check",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Validate the structure of the directory and content of _course.yml and _lecture.yml files.",
+	Long:  `TODO: long description`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("check called")
 	},
