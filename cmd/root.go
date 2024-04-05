@@ -43,11 +43,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.jupyteach.yaml)")
-	rootCmd.PersistentFlags().StringVar(&path, "path", ".", "Path of course contents)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringVar(&path, "path", ".", "Path of course contents")
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -66,10 +62,13 @@ func initConfig() {
 		viper.SetConfigName(".jupyteach")
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
+	viper.SetDefault("BASE_URL", "https://app.jupyteach.com")
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Println("Error reading config file:", viper.ConfigFileUsed())
 	}
+
+	viper.SetEnvPrefix("jupyteach")
+	viper.AutomaticEnv() // read in environment variables that match
 }
