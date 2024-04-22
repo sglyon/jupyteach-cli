@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -314,6 +315,97 @@ func writeYaml(path string, data interface{}) error {
 	}
 
 	if err := os.WriteFile(path, yamlBytes, 0o644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func slugify(x string) string {
+	// slugify a string. This will convert to lowercase and replace all spaces with hyphens
+
+	// convert to lowercase
+	x = strings.ToLower(x)
+	// replace spaces with hyphens
+	x = strings.ReplaceAll(x, " ", "-")
+
+	return x
+}
+
+func (c CourseYaml) checkLectureDirectories() error {
+	// We need to make sure that for each `cl CourseLectureYaml` in `c.Lectures` that the
+	// name is the slugified version of the title in `cl.Directory/_lecture.yml` file
+
+	for _, cl := range c.Lectures {
+		lectureYamlPath := filepath.Join(cl.Directory, "_lecture.yml")
+		lecture, err := parseLectureYaml(lectureYamlPath)
+		if err != nil {
+			return err
+		}
+		// Check slugified version
+		slug := slugify(lecture.Title)
+		if cl.Directory != slug {
+			return fmt.Errorf("Directory name %s does not match lecture title %s", cl.Directory, slug)
+		}
+	}
+	return nil
+}
+
+func unpackZip(zipReader *zip.Reader) error {
+	// Iterate through the files in the archive,
+	// creating them in the current directory
+	for _, file := range zipReader.File {
+		outputFilePath := filepath.Join(".", file.Name)
+
+		if file.FileInfo().IsDir() {
+			// Create directory
+			if err := os.MkdirAll(outputFilePath, file.Mode()); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// Open the file inside the zip archive
+		zippedFile, err := file.Open()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer zippedFile.Close()
+
+		// Create all necessary directories in the path
+		outputDir := filepath.Dir(outputFilePath)
+		if err := os.MkdirAll(outputDir, 0o755); err != nil {
+			log.Fatal(err)
+		}
+
+		outputFile, err := os.OpenFile(outputFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer outputFile.Close()
+
+		// Copy the contents of the file to the current directory
+		_, err = io.Copy(outputFile, zippedFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	return nil
+}
+
+func unpackZipResponse(resp *http.Response) error {
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	bodyReader := bytes.NewReader(bodyBytes)
+	zipReader, err := zip.NewReader(bodyReader, int64(bodyReader.Len()))
+	if err != nil {
+		return err
+	}
+
+	if err := unpackZip(zipReader); err != nil {
 		return err
 	}
 

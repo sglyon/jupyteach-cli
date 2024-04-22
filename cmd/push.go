@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -39,7 +38,13 @@ var pushCmd = &cobra.Command{
 		if err != nil {
 			log.Fatalf("Error parsing _course.yaml file %e", err)
 		}
+
+		fmt.Printf("this is course %+v\n", course)
 		courseYamlUpdateTimestamp := course.LastUpdateTimestamp()
+
+		if err := course.checkLectureDirectories(); err != nil {
+			log.Fatalf("Error checking lecture directories %e", err)
+		}
 
 		// Now you can use course.SyncStatusUpdateTimestamp in your code...
 
@@ -158,16 +163,11 @@ var pushCmd = &cobra.Command{
 		}
 		defer resp.Body.Close()
 
-		// print the header
-
-		// Print the response body
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalf("Error reading response %e", err)
+		if err := unpackZipResponse(resp); err != nil {
+			log.Fatal(err)
 		}
-		log.Printf("Response: %s", bodyBytes)
 
-		log.Printf("Pushed changes to server")
+		log.Printf("Pushed changes to server. Some metadata may have changed. Use `git` commands to manage")
 	},
 }
 

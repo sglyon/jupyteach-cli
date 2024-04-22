@@ -4,14 +4,9 @@ Copyright © 2024 Spencer Lyon spencerlyon2@gmail.com
 package cmd
 
 import (
-	"archive/zip"
-	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/spf13/cobra"
@@ -53,54 +48,8 @@ var pullCmd = &cobra.Command{
 		}
 		defer resp.Body.Close()
 
-		bodyBytes, err := io.ReadAll(resp.Body)
-		if err != nil {
+		if err := unpackZipResponse(resp); err != nil {
 			log.Fatal(err)
-		}
-
-		bodyReader := bytes.NewReader(bodyBytes)
-		zipReader, err := zip.NewReader(bodyReader, int64(bodyReader.Len()))
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Iterate through the files in the archive,
-		// creating them in the current directory
-		for _, file := range zipReader.File {
-			outputFilePath := filepath.Join(".", file.Name)
-
-			if file.FileInfo().IsDir() {
-				// Create directory
-				if err := os.MkdirAll(outputFilePath, file.Mode()); err != nil {
-					log.Fatal(err)
-				}
-				continue
-			}
-
-			// Open the file inside the zip archive
-			zippedFile, err := file.Open()
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer zippedFile.Close()
-
-			// Create all necessary directories in the path
-			outputDir := filepath.Dir(outputFilePath)
-			if err := os.MkdirAll(outputDir, 0o755); err != nil {
-				log.Fatal(err)
-			}
-
-			outputFile, err := os.OpenFile(outputFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer outputFile.Close()
-
-			// Copy the contents of the file to the current directory
-			_, err = io.Copy(outputFile, zippedFile)
-			if err != nil {
-				log.Fatal(err)
-			}
 		}
 
 		fmt.Println("Successfully pulled course contents. Please use `git` commands to save changes.")
