@@ -7,11 +7,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
-	"time"
+
+	"github.com/charmbracelet/log"
 
 	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/spf13/cobra"
@@ -39,9 +39,6 @@ var pushCmd = &cobra.Command{
 			log.Fatalf("Error parsing _course.yaml file %e", err)
 		}
 
-		fmt.Printf("this is course %+v\n", course)
-		courseYamlUpdateTimestamp := course.LastUpdateTimestamp()
-
 		if err := course.checkLectureDirectories(); err != nil {
 			log.Fatalf("Error checking lecture directories %e", err)
 		}
@@ -61,14 +58,15 @@ var pushCmd = &cobra.Command{
 
 		log.Printf("Details: %+v", pushGetResponse)
 
-		// parse timestamp in form of "2024-03-28T18:05:41Z"
-		mostRecentUpdateTimestamp, err := time.Parse(time.RFC3339, pushGetResponse.SyncStatusUpdateTimestamp)
-		if err != nil {
-			log.Fatalf("Error parsing timestamp from GET `/.../push` response %e", err)
-		}
+		// // parse timestamp in form of "2024-03-28T18:05:41Z"
+		// mostRecentUpdateTimestamp, err := time.Parse(time.RFC3339, pushGetResponse.SyncStatusUpdateTimestamp)
+		// if err != nil {
+		// 	log.Fatalf("Error parsing timestamp from GET `/.../push` response %e", err)
+		// }
 
-		log.Printf("last timestamp: %+v", mostRecentUpdateTimestamp)
-		log.Printf("last timestamp: %+v", courseYamlUpdateTimestamp)
+		// courseYamlUpdateTimestamp := course.LastUpdateTimestamp()
+		// log.Printf("last timestamp: %+v", mostRecentUpdateTimestamp)
+		// log.Printf("last timestamp: %+v", courseYamlUpdateTimestamp)
 
 		if pushGetResponse.LastCommitSha != "" {
 			// check if local commit is in history

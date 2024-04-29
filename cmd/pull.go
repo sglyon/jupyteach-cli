@@ -5,8 +5,9 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+
+	"github.com/charmbracelet/log"
 
 	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/spf13/cobra"
@@ -48,11 +49,13 @@ var pullCmd = &cobra.Command{
 		}
 		defer resp.Body.Close()
 
+		log.Info("Response received", "statusCode", resp.StatusCode)
+
 		if err := unpackZipResponse(resp); err != nil {
 			log.Fatal(err)
 		}
 
-		fmt.Println("Successfully pulled course contents. Please use `git` commands to save changes.")
+		log.Info("Successfully pulled course contents. Please use `git` commands to save changes.")
 	},
 }
 

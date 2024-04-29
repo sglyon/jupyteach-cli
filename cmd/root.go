@@ -4,9 +4,9 @@ Copyright © 2024 Spencer Lyon spencerlyon2@gmail.com
 package cmd
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -66,7 +66,7 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println("Error reading config file:", viper.ConfigFileUsed())
+		log.Error("Error reading config file:", viper.ConfigFileUsed())
 	}
 
 	viper.SetEnvPrefix("jupyteach")

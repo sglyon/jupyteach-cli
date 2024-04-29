@@ -4,8 +4,7 @@ Copyright © 2024 Spencer Lyon spencerlyon2@gmail.com
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +14,7 @@ var checkCmd = &cobra.Command{
 	Short: "Validate the structure of the directory and content of _course.yml and _lecture.yml files.",
 	Long:  `TODO: long description`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("check called")
+		log.Debug("check called")
 	},
 }
 

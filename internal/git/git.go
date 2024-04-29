@@ -1,8 +1,9 @@
 package git
 
 import (
-	"log"
 	"strings"
+
+	"github.com/charmbracelet/log"
 
 	lib "github.com/ldez/go-git-cmd-wrapper/v2/git"
 	"github.com/ldez/go-git-cmd-wrapper/v2/revparse"
@@ -41,13 +42,38 @@ func GetLatestCommitSha(path string) (string, error) {
 func IsShaInHistory(sha string) (bool, error) {
 	_, err := lib.RevParse(revparse.Args(sha))
 	if err != nil {
-		log.Println("We got an error looking up sha in history", sha, err)
+		log.Error("We got an error looking up sha in history", "sha", sha, "err", err)
 		return false, err
 	}
 	return true, nil
 }
 
+func initialCommitSha() (string, error) {
+	x, err := lib.Raw("rev-list", func(g *types.Cmd) {
+		g.AddOptions("--max-parents=0")
+		g.AddOptions("HEAD")
+		lib.Debug(g)
+	})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(x), nil
+}
+
+func toJupyteachChangecode(s string) string {
+	switch s {
+	case "R":
+		return "M"
+	default:
+		return s
+	}
+}
+
 func ChangesSinceCommit(path, sha string) (map[string]string, error) {
+	if sha == "" {
+		sha, _ = initialCommitSha()
+	}
+
 	x, err := lib.Raw("diff", func(g *types.Cmd) {
 		g.AddOptions("--name-status")
 		g.AddOptions(sha)
@@ -65,7 +91,12 @@ func ChangesSinceCommit(path, sha string) (map[string]string, error) {
 			continue
 		}
 		parts := strings.Split(line, "\t")
-		out[parts[1]] = parts[0]
+		changecode := toJupyteachChangecode(string(parts[0][0]))
+		if string(parts[0][0]) == "R" && len(parts) == 3 {
+			out[parts[2]] = changecode
+		} else {
+			out[parts[1]] = changecode
+		}
 	}
 	return out, nil
 }

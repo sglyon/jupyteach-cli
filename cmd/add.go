@@ -23,12 +23,12 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
@@ -60,7 +60,6 @@ func createLecture() error {
 
 	lectureForm := huh.NewForm(
 		huh.NewGroup(
-			huh.NewInput().Title("Directory for new lecture").Value(&lectureOptions.Directory),
 			huh.NewInput().Title("Lecture Title").Value(&lectureOptions.Title),
 			huh.NewInput().Title("Lecture Description").Value(&lectureOptions.Description),
 		),
@@ -69,6 +68,8 @@ func createLecture() error {
 	if err := lectureForm.Run(); err != nil {
 		return err
 	}
+
+	lectureOptions.Directory = slugify(lectureOptions.Title)
 
 	// Make sure directory doesn't already exist
 	if _, err := os.Stat(lectureOptions.Directory); !os.IsNotExist(err) {
@@ -292,14 +293,4 @@ var addCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(addCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// addCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

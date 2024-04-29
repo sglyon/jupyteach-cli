@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/charmbracelet/log"
 
 	"gopkg.in/yaml.v2"
 )
@@ -96,7 +97,6 @@ type LectureYaml struct {
 
 func parseCourseYaml(dirname string) (*CourseYaml, error) {
 	yamlPath := filepath.Join(dirname, "_course.yml")
-	fmt.Println("yamlPath: ", yamlPath)
 	// Check if _course.yml exists
 	_, errFile := os.Stat(yamlPath)
 	if os.IsNotExist(errFile) {
@@ -326,7 +326,11 @@ func slugify(x string) string {
 
 	// convert to lowercase
 	x = strings.ToLower(x)
-	// replace spaces with hyphens
+	// replace colon with nothing
+	x = strings.ReplaceAll(x, ":", "")
+	x = strings.ReplaceAll(x, "(", "")
+	x = strings.ReplaceAll(x, ")", "")
+	// replace spaces, parens  with hyphens
 	x = strings.ReplaceAll(x, " ", "-")
 
 	return x
