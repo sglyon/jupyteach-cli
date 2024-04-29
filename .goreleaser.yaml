@@ -46,9 +46,9 @@ changelog:
       - "^docs:"
       - "^test:"
 
-brew:
-  homepage: "https://app.jupyteach.com/"
-  skip_upload: auto
-  repository:
-    owner: sglyon
-    name: homebrew-tap
+brews:
+  - homepage: "https://app.jupyteach.com/"
+    skip_upload: auto
+    repository:
+      owner: sglyon
+      name: homebrew-tap
