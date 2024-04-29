@@ -4,7 +4,6 @@ Copyright © 2024 Spencer Lyon spencerlyon2@gmail.com
 package main
 
 import (
-	"github.com/charmbracelet/log"
 	"github.com/sglyon/jupyteach/cmd"
 )
 
@@ -16,6 +15,8 @@ var (
 	builtBy = ""
 )
 
+const repo = "sglyon/jupyteach-cli"
+
 func main() {
 	vi := cmd.VersionInfo{
 		Version: version,
@@ -23,5 +24,8 @@ func main() {
 		Date:    date,
 		BuiltBy: builtBy,
 	}
+	// if err := SelfUpdate(); err != nil {
+	// 	log.Fatal(err)
+	// }
 	cmd.Execute(vi)
 }
