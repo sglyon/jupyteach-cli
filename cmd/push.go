@@ -70,7 +70,7 @@ var pushCmd = &cobra.Command{
 
 		if pushGetResponse.LastCommitSha != "" {
 			// check if local commit is in history
-			inHistory, _ := git.IsShaInHistory(pushGetResponse.LastCommitSha)
+			inHistory, _ := git.IsShaInHistory(path, pushGetResponse.LastCommitSha)
 			if !inHistory {
 				log.Fatalf("Latest commit known to server is not in local history. Use `git pull` pull to changes from remote first")
 			}

@@ -1,22 +1,52 @@
 package git
 
 import (
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/log"
 
 	lib "github.com/ldez/go-git-cmd-wrapper/v2/git"
+	gitinit "github.com/ldez/go-git-cmd-wrapper/v2/init"
 	"github.com/ldez/go-git-cmd-wrapper/v2/revparse"
 	"github.com/ldez/go-git-cmd-wrapper/v2/status"
 	"github.com/ldez/go-git-cmd-wrapper/v2/types"
 )
 
+func WithDirectory(path string, f func() error) error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(path); err != nil {
+		return err
+	}
+	return f()
+}
+
 func IsClean(path string) (bool, error) {
-	x, err := lib.Status(status.Porcelain(""))
+	var x string
+
+	err := WithDirectory(path, func() error {
+		var errOut error
+		x, errOut = lib.Status(status.Porcelain(""))
+		return errOut
+	})
 	if err != nil {
 		return false, err
 	}
 	return len(x) == 0, nil
+}
+
+func Init(path string) error {
+	msg, err := lib.Init(gitinit.Directory(path))
+	if err != nil {
+		return err
+	}
+	log.Infof(msg)
+	return nil
 }
 
 func CheckCleanFatal(path string) {
@@ -32,15 +62,24 @@ func CheckCleanFatal(path string) {
 }
 
 func GetLatestCommitSha(path string) (string, error) {
-	x, err := lib.RevParse(revparse.Args("HEAD"))
+	var x string
+
+	err := WithDirectory(path, func() error {
+		var errOut error
+		x, errOut = lib.RevParse(revparse.Args("HEAD"))
+		return errOut
+	})
 	if err != nil {
 		return "", err
 	}
 	return strings.TrimSpace(x), nil
 }
 
-func IsShaInHistory(sha string) (bool, error) {
-	_, err := lib.RevParse(revparse.Args(sha))
+func IsShaInHistory(path, sha string) (bool, error) {
+	err := WithDirectory(path, func() error {
+		_, err := lib.RevParse(revparse.Args(sha))
+		return err
+	})
 	if err != nil {
 		log.Error("We got an error looking up sha in history", "sha", sha, "err", err)
 		return false, err
@@ -48,11 +87,17 @@ func IsShaInHistory(sha string) (bool, error) {
 	return true, nil
 }
 
-func initialCommitSha() (string, error) {
-	x, err := lib.Raw("rev-list", func(g *types.Cmd) {
-		g.AddOptions("--max-parents=0")
-		g.AddOptions("HEAD")
-		lib.Debug(g)
+func initialCommitSha(path string) (string, error) {
+	var x string
+
+	err := WithDirectory(path, func() error {
+		var errOut error
+		x, errOut = lib.Raw("rev-list", func(g *types.Cmd) {
+			g.AddOptions("--max-parents=0")
+			g.AddOptions("HEAD")
+			lib.Debug(g)
+		})
+		return errOut
 	})
 	if err != nil {
 		return "", err
@@ -71,13 +116,19 @@ func toJupyteachChangecode(s string) string {
 
 func ChangesSinceCommit(path, sha string) (map[string]string, error) {
 	if sha == "" {
-		sha, _ = initialCommitSha()
+		sha, _ = initialCommitSha(path)
 	}
 
-	x, err := lib.Raw("diff", func(g *types.Cmd) {
-		g.AddOptions("--name-status")
-		g.AddOptions(sha)
-		lib.Debug(g)
+	var x string
+
+	err := WithDirectory(path, func() error {
+		var errOut error
+		x, errOut = lib.Raw("diff", func(g *types.Cmd) {
+			g.AddOptions("--name-status")
+			g.AddOptions(sha)
+			lib.Debug(g)
+		})
+		return errOut
 	})
 	if err != nil {
 		return nil, err
