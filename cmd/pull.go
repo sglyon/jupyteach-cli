@@ -4,6 +4,7 @@ Copyright © 2024 Spencer Lyon spencerlyon2@gmail.com
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -13,6 +14,41 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+func doPull(path, courseSlug string) error {
+	git.CheckCleanFatal(path)
+
+	apiKey := viper.GetString("API_KEY")
+	baseURL := viper.GetString("BASE_URL")
+	if apiKey == "" {
+		return errors.New("API Key not set. Please run `jupyteach login`")
+	}
+
+	url := fmt.Sprintf("%s/api/v1/course/%s/pull", baseURL, courseSlug)
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+apiKey)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	log.Info("Response received", "statusCode", resp.StatusCode)
+
+	if err := git.WithDirectory(path, func() error {
+		return unpackZipResponse(resp)
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
 
 // pullCmd represents the pull command
 var pullCmd = &cobra.Command{
@@ -26,32 +62,8 @@ var pullCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal("Must provide a path")
 		}
-		git.CheckCleanFatal(path)
 
-		apiKey := viper.GetString("API_KEY")
-		baseURL := viper.GetString("BASE_URL")
-		if apiKey == "" {
-			log.Fatal("API Key not set. Please run `jupyteach login`")
-		}
-
-		url := fmt.Sprintf("%s/api/v1/course/%s/pull", baseURL, courseSlug)
-		client := &http.Client{}
-		req, err := http.NewRequest("GET", url, nil)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		req.Header.Add("Authorization", "Bearer "+apiKey)
-
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer resp.Body.Close()
-
-		log.Info("Response received", "statusCode", resp.StatusCode)
-
-		if err := unpackZipResponse(resp); err != nil {
+		if err := doPull(path, courseSlug); err != nil {
 			log.Fatal(err)
 		}
 
