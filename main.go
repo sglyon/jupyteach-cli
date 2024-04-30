@@ -4,12 +4,15 @@ Copyright © 2024 Spencer Lyon spencerlyon2@gmail.com
 package main
 
 import (
+	"os"
+
+	"github.com/charmbracelet/log"
 	"github.com/sglyon/jupyteach/cmd"
 )
 
 // These fields are populated by the goreleaser build
 var (
-	version = "0.1.0-rc1"
+	version = "dev"
 	commit  = ""
 	date    = ""
 	builtBy = ""
@@ -24,8 +27,14 @@ func main() {
 		Date:    date,
 		BuiltBy: builtBy,
 	}
-	// if err := SelfUpdate(); err != nil {
-	// 	log.Fatal(err)
-	// }
+	updated, err := SelfUpdate()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if updated {
+		log.Info("Updated successfully. Please re-run the command.")
+		os.Exit(0)
+	}
 	cmd.Execute(vi)
 }
