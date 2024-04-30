@@ -45,6 +45,7 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+      - "^style:"
 
 brews:
   - homepage: "https://app.jupyteach.com/"
