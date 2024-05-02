@@ -165,7 +165,15 @@ var pushCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		log.Printf("Pushed changes to server. Some metadata may have changed. Use `git` commands to manage")
+		log.Printf("Pushed changes to server. Some metadata may have changed. ")
+
+		committed, err := git.CommitAll(path, "jupyteach cli push response")
+		if committed {
+			log.Info("Successfully committed changes to local git repository")
+		}
+		if err != nil {
+			log.Warn("Failed to create commit. Please use `git` manually to commit changes to repo in directory", "directory", path)
+		}
 	},
 }
 

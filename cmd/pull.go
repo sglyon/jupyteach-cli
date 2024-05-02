@@ -67,7 +67,16 @@ var pullCmd = &cobra.Command{
 			log.Fatal(err)
 		}
 
-		log.Info("Successfully pulled course contents. Please use `git` commands to save changes.")
+		log.Info("Successfully pulled course contents.")
+
+		committed, err := git.CommitAll(path, "jupyteach cli pull response")
+
+		if committed {
+			log.Info("Successfully committed changes to local git repository")
+		}
+		if err != nil {
+			log.Warn("Failed to create commit. Please use `git` manually to commit changes to repo in directory", "directory", path)
+		}
 	},
 }
 

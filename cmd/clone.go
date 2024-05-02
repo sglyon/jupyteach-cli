@@ -62,7 +62,16 @@ var cloneCmd = &cobra.Command{
 		if err := doPull(path, courseSlug); err != nil {
 			log.Fatal(err)
 		}
-		log.Info("Successfully cloned course contents. Please use `git` commands to save changes.", "directory", path)
+		log.Info("Successfully cloned course contents. ", "directory", path)
+
+		committed, err := git.CommitAll(path, "jupyteach cli initial clone")
+
+		if committed {
+			log.Info("Successfully committed changes to local git repository")
+		}
+		if err != nil {
+			log.Warn("Failed to create commit. Please use `git` manually to commit changes to repo in directory", "directory", path)
+		}
 	},
 }
 

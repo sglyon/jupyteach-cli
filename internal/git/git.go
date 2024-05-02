@@ -6,6 +6,8 @@ import (
 
 	"github.com/charmbracelet/log"
 
+	"github.com/ldez/go-git-cmd-wrapper/v2/add"
+	"github.com/ldez/go-git-cmd-wrapper/v2/commit"
 	lib "github.com/ldez/go-git-cmd-wrapper/v2/git"
 	gitinit "github.com/ldez/go-git-cmd-wrapper/v2/init"
 	"github.com/ldez/go-git-cmd-wrapper/v2/revparse"
@@ -150,4 +152,32 @@ func ChangesSinceCommit(path, sha string) (map[string]string, error) {
 		}
 	}
 	return out, nil
+}
+
+func CommitAll(path, message string) (bool, error) {
+	var committed bool
+	err := WithDirectory(path, func() error {
+		var errOut error
+		var s string
+		s, errOut = lib.Add(add.All)
+		if errOut != nil {
+			log.Error(s)
+			return errOut
+		}
+
+		s, errOut = lib.Commit(commit.Message(message))
+		if strings.Contains(s, "nothing to commit") {
+			return nil
+		}
+		if errOut != nil {
+			log.Error(s)
+			return errOut
+		}
+
+		committed = true
+
+		return nil
+	})
+
+	return committed, err
 }
