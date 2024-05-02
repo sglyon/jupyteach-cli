@@ -35,8 +35,9 @@ var cloneCmd = &cobra.Command{
 	Short: "Clone an existing course to a new directory",
 	Long: `Clone a full Jupyteach course (for which you are an admin)
 	to a new directory. The name of the directory will match the course slug.`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		courseSlug := getCourseSlug(args)
+		courseSlug := args[0]
 		// path, err := cmd.Flags().GetString("path")
 		// if err != nil {
 		// 	log.Fatal("Must provide a path")
