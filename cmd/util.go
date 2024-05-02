@@ -27,6 +27,7 @@ type CourseLectureYaml struct {
 	CourseLectureID int    `yaml:"course_lecture_id,omitempty"`
 	Directory       string `yaml:"directory,omitempty"`
 	LectureID       int    `yaml:"lecture_id,omitempty"`
+	AvailableAt     string `yaml:"available_at,omitempty"`
 }
 
 type CourseYaml struct {

@@ -22,10 +22,12 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/log"
@@ -41,7 +43,8 @@ type CommonOptions struct {
 }
 
 type LectureOptions struct {
-	Directory string
+	Directory   string
+	AvailableAt string
 	CommonOptions
 }
 
@@ -51,6 +54,7 @@ type NotebookOptions struct {
 
 func createLecture() error {
 	var lectureOptions LectureOptions
+	lectureOptions.AvailableAt = time.Now().Format(time.RFC3339)
 
 	// Ensure `_course.yml` exists
 	courseMetadata, err := parseCourseYaml(".")
@@ -62,6 +66,17 @@ func createLecture() error {
 		huh.NewGroup(
 			huh.NewInput().Title("Lecture Title").Value(&lectureOptions.Title),
 			huh.NewInput().Title("Lecture Description").Value(&lectureOptions.Description),
+			huh.NewInput().
+				Title("Available At").
+				Value(&lectureOptions.AvailableAt).
+				Suggestions([]string{time.Now().Format(time.RFC3339)}).
+				Validate(func(s string) error {
+					_, err := time.Parse(time.RFC3339, s)
+					if err != nil {
+						return errors.New("Invalid date format. Must be in RFC3339 format (e.g. 2024-03-28T18:05:41Z)")
+					}
+					return nil
+				}),
 		),
 	)
 
@@ -95,7 +110,8 @@ func createLecture() error {
 
 	// Add this lecture to _course.yml
 	newCourseLecture := CourseLectureYaml{
-		Directory: lectureOptions.Directory,
+		Directory:   lectureOptions.Directory,
+		AvailableAt: lectureOptions.AvailableAt, // current timestamp
 	}
 
 	courseMetadata.Lectures = append(courseMetadata.Lectures, newCourseLecture)
