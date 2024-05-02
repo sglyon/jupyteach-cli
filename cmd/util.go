@@ -233,7 +233,7 @@ func (c CourseYaml) createZip(path string) ([]byte, error) {
 				files = append(
 					files,
 					specForZip{
-						Name: filepath.Join(l.Directory, cb.Filename),
+						Name: filepath.Join(cb.Filename),
 						Path: filepath.Join(path, l.Directory, cb.Filename),
 					},
 				)
