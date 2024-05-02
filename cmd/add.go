@@ -279,6 +279,9 @@ var addCmd = &cobra.Command{
 			for _, topic := range strings.Split(quizTopicsInput, ",") {
 				contentBlock.Quiz.Topics = append(contentBlock.Quiz.Topics, strings.TrimSpace(topic))
 			}
+		case "notebook", "markdown":
+			// strip lecture directory prefix from filename
+			contentBlock.Filename = strings.TrimPrefix(contentBlock.Filename, lectureDirectory+string(filepath.Separator))
 		}
 
 		// update contentBlock.position
