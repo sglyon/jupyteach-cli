@@ -76,7 +76,6 @@ type ContentBlockYaml struct {
 	Description      string   `yaml:"description,omitempty"`
 	Filename         string   `yaml:"filename,omitempty"`
 	LectureContentID int      `yaml:"lecture_content_id,omitempty"`
-	Position         int      `yaml:"position"`
 	Title            string   `yaml:"title,omitempty"`
 	Type             string   `yaml:"type,omitempty"`
 	URL              string   `yaml:"url,omitempty"`

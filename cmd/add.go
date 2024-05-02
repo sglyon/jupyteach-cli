@@ -284,9 +284,6 @@ var addCmd = &cobra.Command{
 			contentBlock.Filename = strings.TrimPrefix(contentBlock.Filename, lectureDirectory+string(filepath.Separator))
 		}
 
-		// update contentBlock.position
-		contentBlock.Position = len(lectureYaml.ContentBlocks)
-
 		lectureYaml.ContentBlocks = append(lectureYaml.ContentBlocks, contentBlock)
 		if err := writeYaml(filepath.Join(lectureDirectory, "_lecture.yml"), lectureYaml); err != nil {
 			log.Fatal(err)
