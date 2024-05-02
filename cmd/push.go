@@ -23,10 +23,10 @@ var pushCmd = &cobra.Command{
 	Use:   "push {course_slug}",
 	Short: "Push local changes to the Jupyteach application",
 	Long:  `TODO: long description`,
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		// Parse flags and config
-		courseSlug := args[0]
+		courseSlug := getCourseSlug(args)
 		path, err := cmd.Flags().GetString("path")
 		if err != nil {
 			log.Fatalf("Must provide a path")

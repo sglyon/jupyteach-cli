@@ -55,9 +55,9 @@ var pullCmd = &cobra.Command{
 	Use:   "pull {course_slug}",
 	Short: "Pull changes from the Jupyteach application to local directory",
 	Long:  `TODO: long description`,
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		courseSlug := args[0]
+		courseSlug := getCourseSlug(args)
 		path, err := cmd.Flags().GetString("path")
 		if err != nil {
 			log.Fatal("Must provide a path")

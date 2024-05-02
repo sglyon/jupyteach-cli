@@ -415,3 +415,16 @@ func unpackZipResponse(resp *http.Response) error {
 
 	return nil
 }
+func getCourseSlug(args []string) string {
+	// first check if we have a _course.yml file
+	course, err := parseCourseYaml(".")
+	if err == nil {
+		return course.Slug
+	}
+
+	if len(args) == 0 {
+		log.Fatal("No course slug provided")
+	}
+
+	return args[0]
+}
