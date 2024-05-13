@@ -161,6 +161,13 @@ var pushCmd = &cobra.Command{
 		}
 		defer resp.Body.Close()
 
+		if resp.StatusCode >= 400 {
+			log.Fatalf("Error response from server: %s", resp.Status)
+		}
+
+		log.Infof("Response object: %+v", resp)
+
+		// TODO 2024-05-02 15:53:11: check status code to make sure request was successful
 		if err := unpackZipResponse(resp); err != nil {
 			log.Fatal(err)
 		}
