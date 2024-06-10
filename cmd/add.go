@@ -61,6 +61,7 @@ func createLecture() error {
 	if err != nil {
 		return err
 	}
+	sep := courseMetadata.Sep()
 
 	lectureForm := huh.NewForm(
 		huh.NewGroup(
@@ -84,7 +85,7 @@ func createLecture() error {
 		return err
 	}
 
-	lectureOptions.Directory = slugify(lectureOptions.Title)
+	lectureOptions.Directory = slugify(lectureOptions.Title, sep)
 
 	// Make sure directory doesn't already exist
 	if _, err := os.Stat(lectureOptions.Directory); !os.IsNotExist(err) {

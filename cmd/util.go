@@ -41,6 +41,7 @@ type CourseYaml struct {
 	Slug                      string              `yaml:"slug,omitempty"`
 	StartDate                 string              `yaml:"start_date,omitempty"`
 	SyncStatusUpdateTimestamp string              `yaml:"sync_status_update_timestamp,omitempty"`
+	CLIDirectoryWordSeparator string              `yaml:"cli_directory_word_separator,omitempty"`
 }
 
 type Question struct {
@@ -135,6 +136,13 @@ func (c CourseYaml) LastUpdateTimestamp() time.Time {
 		log.Fatal(err)
 	}
 	return t
+}
+
+func (c CourseYaml) Sep() string {
+	if c.CLIDirectoryWordSeparator != "" {
+		return c.CLIDirectoryWordSeparator
+	}
+	return "-"
 }
 
 func parseLectureYaml(lectureYmlPath string) (*LectureYaml, error) {
@@ -321,7 +329,7 @@ func writeYaml(path string, data interface{}) error {
 	return nil
 }
 
-func slugify(x string) string {
+func slugify(x string, sep string) string {
 	// slugify a string. This will convert to lowercase and replace all spaces with hyphens
 
 	// convert to lowercase
@@ -331,7 +339,7 @@ func slugify(x string) string {
 	x = strings.ReplaceAll(x, "(", "")
 	x = strings.ReplaceAll(x, ")", "")
 	// replace spaces, parens  with hyphens
-	x = strings.ReplaceAll(x, " ", "-")
+	x = strings.ReplaceAll(x, " ", sep)
 
 	return x
 }
@@ -347,7 +355,7 @@ func (c CourseYaml) checkLectureDirectories() error {
 			return err
 		}
 		// Check slugified version
-		slug := slugify(lecture.Title)
+		slug := slugify(lecture.Title, c.Sep())
 		if cl.Directory != slug {
 			return fmt.Errorf("Directory name %s does not match lecture title %s", cl.Directory, slug)
 		}
