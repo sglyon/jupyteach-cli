@@ -91,12 +91,15 @@ var pushCmd = &cobra.Command{
 		course.LastCommitSHA = sha
 
 		// Now create a zip file
-		zipBytes, err := course.createZip(path)
+		zipBytes, files, err := course.createZip(path)
 		if err != nil {
 			log.Fatalf("Error creating zip %e", err)
 		}
 
-		changedJsonBytes, err := json.Marshal(changed)
+		// filter changed to only include files that are in the zip
+		filteredChanged := FilterChanged(changed, files)
+
+		changedJsonBytes, err := json.Marshal(filteredChanged)
 		if err != nil {
 			log.Fatalf("Error encoding changes as json object %e", err)
 		}

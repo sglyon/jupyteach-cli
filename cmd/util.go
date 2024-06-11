@@ -199,11 +199,11 @@ func requestGetPush(apiKey, baseURL, courseSlug string) (*PushGetResponse, error
 	return &pushGetResponse, nil
 }
 
-type specForZip struct {
+type SpecForZip struct {
 	Name, Path string
 }
 
-func (c CourseYaml) createZip(path string) ([]byte, error) {
+func (c CourseYaml) createZip(path string) ([]byte, []SpecForZip, error) {
 	// first create a zip file in memory and load up the file at `path/_course.yml` and `path/syllabus.md`
 	// then add all the files in the lectures directories
 	// then return the zip file as a byte slice
@@ -214,7 +214,7 @@ func (c CourseYaml) createZip(path string) ([]byte, error) {
 	w := zip.NewWriter(buf)
 
 	// Add files to the archive.
-	files := []specForZip{
+	files := []SpecForZip{
 		{"syllabus.md", filepath.Join(path, "syllabus.md")},
 	}
 
@@ -224,12 +224,12 @@ func (c CourseYaml) createZip(path string) ([]byte, error) {
 		lectureYamlPath := filepath.Join(path, l.Directory, "_lecture.yml")
 		lecture, err := parseLectureYaml(lectureYamlPath)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		files = append(
 			files,
-			specForZip{
+			SpecForZip{
 				Name: filepath.Join(l.Directory, "_lecture.yml"),
 				Path: lectureYamlPath,
 			},
@@ -240,7 +240,7 @@ func (c CourseYaml) createZip(path string) ([]byte, error) {
 			if cb.Filename != "" {
 				files = append(
 					files,
-					specForZip{
+					SpecForZip{
 						Name: filepath.Join(l.Directory, cb.Filename),
 						Path: filepath.Join(path, l.Directory, cb.Filename),
 					},
@@ -252,43 +252,43 @@ func (c CourseYaml) createZip(path string) ([]byte, error) {
 	for _, file := range files {
 		f, err := w.Create(file.Name)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		fileContent, err := os.ReadFile(file.Path)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		_, err = f.Write(fileContent)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	// finally marshal the course yaml and write it to the zip file
 	courseYamlBytes, err := yaml.Marshal(c)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	f, err := w.Create("_course.yml")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	_, err = f.Write(courseYamlBytes)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Make sure to check the error on Close.
 
 	if err := w.Close(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return buf.Bytes(), nil
+	return buf.Bytes(), files, nil
 }
 
 func ListFilesInDirectory(path string, extensions []string) ([]string, error) {
@@ -435,4 +435,15 @@ func getCourseSlug(args []string) string {
 	}
 
 	return args[0]
+}
+
+func FilterChanged(changed map[string]string, files []SpecForZip) map[string]string {
+	// filter the changed map to only include files that appear in `files`
+	filtered := make(map[string]string)
+	for _, file := range files {
+		if _, ok := changed[file.Path]; ok {
+			filtered[file.Path] = changed[file.Path]
+		}
+	}
+	return filtered
 }
