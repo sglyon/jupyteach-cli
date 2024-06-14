@@ -1,7 +1,9 @@
 package git
 
 import (
+	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/log"
@@ -77,6 +79,52 @@ func GetLatestCommitSha(path string) (string, error) {
 	return strings.TrimSpace(x), nil
 }
 
+func MoreRecentSha(path, sha1, sha2 string) (string, error) {
+	// Check if both SHAs are valid commit hashes
+	sha1Time, err1 := CommitTime(path, sha1)
+	sha2Time, err2 := CommitTime(path, sha2)
+
+	if err1 == nil && err2 == nil {
+		if sha1Time > sha2Time {
+			return sha1, nil
+		}
+		return sha2, nil
+	}
+
+	if err1 != nil && err2 == nil {
+		return sha2, nil
+	}
+
+	if err1 == nil && err2 != nil {
+		return sha1, nil
+	}
+
+	return "", fmt.Errorf("error getting time for both shas")
+}
+
+func CommitTime(path, sha string) (int64, error) {
+	var x string
+
+	err := WithDirectory(path, func() error {
+		var errOut error
+		// git log --pretty=format: --name-status --diff-filter=ACMRT
+		x, errOut = lib.Raw("show", func(g *types.Cmd) {
+			g.AddOptions("-s")
+			g.AddOptions("--format=%ct")
+			g.AddOptions(sha)
+			lib.Debug(g)
+		})
+		return errOut
+	})
+
+	// Parse the UNIX timestamp
+	unixTime, err := strconv.ParseInt(strings.TrimSpace(x), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse commit time: %w", err)
+	}
+	return unixTime, nil
+}
+
 func IsShaInHistory(path, sha string) (bool, error) {
 	err := WithDirectory(path, func() error {
 		_, err := lib.RevParse(revparse.Args(sha))
@@ -89,24 +137,6 @@ func IsShaInHistory(path, sha string) (bool, error) {
 	return true, nil
 }
 
-func initialCommitSha(path string) (string, error) {
-	var x string
-
-	err := WithDirectory(path, func() error {
-		var errOut error
-		x, errOut = lib.Raw("rev-list", func(g *types.Cmd) {
-			g.AddOptions("--max-parents=0")
-			g.AddOptions("HEAD")
-			lib.Debug(g)
-		})
-		return errOut
-	})
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSpace(x), nil
-}
-
 func toJupyteachChangecode(s string) string {
 	switch s {
 	case "R":
@@ -117,21 +147,31 @@ func toJupyteachChangecode(s string) string {
 }
 
 func ChangesSinceCommit(path, sha string) (map[string]string, error) {
-	if sha == "" {
-		sha, _ = initialCommitSha(path)
-	}
-
 	var x string
+	var err error
 
-	err := WithDirectory(path, func() error {
-		var errOut error
-		x, errOut = lib.Raw("diff", func(g *types.Cmd) {
-			g.AddOptions("--name-status")
-			g.AddOptions(sha)
-			lib.Debug(g)
+	if sha == "" {
+		// Use a different command for the initial commit
+		err = WithDirectory(path, func() error {
+			var errOut error
+			// git log --pretty=format: --name-status --diff-filter=ACMRT
+			x, errOut = lib.Raw("ls-files", func(g *types.Cmd) {
+				g.AddOptions("--format=A\t%(path)")
+				lib.Debug(g)
+			})
+			return errOut
 		})
-		return errOut
-	})
+	} else {
+		err = WithDirectory(path, func() error {
+			var errOut error
+			x, errOut = lib.Raw("diff", func(g *types.Cmd) {
+				g.AddOptions("--name-status")
+				g.AddOptions(sha)
+				lib.Debug(g)
+			})
+			return errOut
+		})
+	}
 	if err != nil {
 		return nil, err
 	}

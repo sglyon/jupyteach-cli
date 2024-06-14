@@ -14,6 +14,7 @@ import (
 	"github.com/charmbracelet/log"
 
 	"github.com/sglyon/jupyteach/internal/git"
+	"github.com/sglyon/jupyteach/internal/model"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -34,12 +35,12 @@ var pushCmd = &cobra.Command{
 		git.CheckCleanFatal(path)
 
 		// Read the `sync_status_update_timestamp` field in `_course.yml`
-		course, err := parseCourseYaml(path)
+		course, err := model.ParseCourseYaml(path)
 		if err != nil {
 			log.Fatalf("Error parsing _course.yaml file %e", err)
 		}
 
-		if err := course.checkLectureDirectories(); err != nil {
+		if err := course.CheckLectureDirectories(); err != nil {
 			log.Fatalf("Error checking lecture directories %e", err)
 		}
 
@@ -82,8 +83,13 @@ var pushCmd = &cobra.Command{
 			log.Fatalf("Error getting latest commit sha %e", err)
 		}
 
+		checkSha, errRecent := git.MoreRecentSha(path, pushGetResponse.LastCommitSha, course.CLICommitSHA)
+		if errRecent != nil {
+			log.Fatalf("Error getting the commit time %e", errRecent)
+		}
+
 		// now get list of all files that have changed
-		changed, err := git.ChangesSinceCommit(path, course.LastCommitSHA)
+		changed, err := git.ChangesSinceCommit(path, checkSha)
 		if err != nil {
 			log.Fatalf("Error getting changes since last known commit sha %e", err)
 		}
@@ -91,7 +97,7 @@ var pushCmd = &cobra.Command{
 		course.LastCommitSHA = sha
 
 		// Now create a zip file
-		zipBytes, files, err := course.createZip(path)
+		zipBytes, files, err := course.CreateZip(path)
 		if err != nil {
 			log.Fatalf("Error creating zip %e", err)
 		}
@@ -180,6 +186,16 @@ var pushCmd = &cobra.Command{
 		committed, err := git.CommitAll(path, "jupyteach cli push response")
 		if committed {
 			log.Info("Successfully committed changes to local git repository")
+			// get sha of latest commit
+			sha, err := git.GetLatestCommitSha(path)
+			if err != nil {
+				log.Fatalf("Error getting latest commit sha %e", err)
+			}
+			resp, errFinal := requestPostRecordSha(apiKey, baseURL, courseSlug, sha)
+			if errFinal != nil {
+				log.Fatalf("Error upating server with most recent sha %e", errFinal)
+			}
+			log.Infof("Server updated with this info: %+v\n", resp)
 		}
 		if err != nil {
 			log.Warn("Failed to create commit. Please use `git` manually to commit changes to repo in directory", "directory", path)

@@ -72,7 +72,24 @@ var pullCmd = &cobra.Command{
 		committed, err := git.CommitAll(path, "jupyteach cli pull response")
 
 		if committed {
+
+			// TODO: need to DRY this out. Also repeated in push.go
 			log.Info("Successfully committed changes to local git repository")
+			// get sha of latest commit
+			sha, err := git.GetLatestCommitSha(path)
+			if err != nil {
+				log.Fatalf("Error getting latest commit sha %e", err)
+			}
+			apiKey := viper.GetString("API_KEY")
+			baseURL := viper.GetString("BASE_URL")
+			if apiKey == "" {
+				log.Fatal("API Key not set. Please run `jupyteach login`")
+			}
+			resp, errFinal := requestPostRecordSha(apiKey, baseURL, courseSlug, sha)
+			if errFinal != nil {
+				log.Fatalf("Error upating server with most recent sha %e", errFinal)
+			}
+			log.Infof("Server updated with this info: %+v\n", resp)
 		}
 		if err != nil {
 			log.Warn("Failed to create commit. Please use `git` manually to commit changes to repo in directory", "directory", path)

@@ -31,6 +31,7 @@ import (
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/log"
+	"github.com/sglyon/jupyteach/internal/model"
 	"github.com/spf13/cobra"
 )
 
@@ -57,7 +58,7 @@ func createLecture() error {
 	lectureOptions.AvailableAt = time.Now().Format(time.RFC3339)
 
 	// Ensure `_course.yml` exists
-	courseMetadata, err := parseCourseYaml(".")
+	courseMetadata, err := model.ParseCourseYaml(".")
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ func createLecture() error {
 		return err
 	}
 
-	lectureOptions.Directory = slugify(lectureOptions.Title, sep)
+	lectureOptions.Directory = model.Slugify(lectureOptions.Title, sep)
 
 	// Make sure directory doesn't already exist
 	if _, err := os.Stat(lectureOptions.Directory); !os.IsNotExist(err) {
@@ -97,10 +98,10 @@ func createLecture() error {
 		return err
 	}
 
-	newLecture := LectureYaml{
+	newLecture := model.LectureYaml{
 		Title:         lectureOptions.Title,
 		Description:   lectureOptions.Description,
-		ContentBlocks: []ContentBlockYaml{},
+		ContentBlocks: []model.ContentBlockYaml{},
 	}
 
 	// Write newLecture to lectureOptions.Directory/_lecture.yml
@@ -110,7 +111,7 @@ func createLecture() error {
 	}
 
 	// Add this lecture to _course.yml
-	newCourseLecture := CourseLectureYaml{
+	newCourseLecture := model.CourseLectureYaml{
 		Directory:   lectureOptions.Directory,
 		AvailableAt: lectureOptions.AvailableAt, // current timestamp
 	}
@@ -135,7 +136,7 @@ var addCmd = &cobra.Command{
 	_lecture.yml`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var options CreateOptions
-		var contentBlock ContentBlockYaml
+		var contentBlock model.ContentBlockYaml
 		var videoSource string
 		var quizTopicsInput string
 
@@ -160,16 +161,16 @@ var addCmd = &cobra.Command{
 		contentBlock.Type = options.Type
 
 		if options.Type == "quiz" {
-			contentBlock.Quiz = Quiz{Questions: []Question{}} // initialize empty quiz
+			contentBlock.Quiz = model.Quiz{Questions: []model.Question{}} // initialize empty quiz
 		}
 
 		// Ensure `_lecture.yml` exists
-		var lectureYaml *LectureYaml
+		var lectureYaml *model.LectureYaml
 		var errFile error
-		lectureYaml, errFile = parseLectureYaml("_lecture.yml")
+		lectureYaml, errFile = model.ParseLectureYaml("_lecture.yml")
 		if errFile != nil {
 			// try to let the user select an existing lecture
-			courseYaml, err := parseCourseYaml(".")
+			courseYaml, err := model.ParseCourseYaml(".")
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -185,7 +186,7 @@ var addCmd = &cobra.Command{
 			}
 
 			// if we still can't find a lecture, bail
-			lectureYaml, errFile = parseLectureYaml(filepath.Join(lectureDirectory, "_lecture.yml"))
+			lectureYaml, errFile = model.ParseLectureYaml(filepath.Join(lectureDirectory, "_lecture.yml"))
 			if errFile != nil {
 				log.Fatal(errFile)
 			}

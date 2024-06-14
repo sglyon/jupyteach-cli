@@ -3,7 +3,10 @@ module github.com/sglyon/jupyteach
 go 1.22.1
 
 require (
+	github.com/charmbracelet/bubbles v0.17.2-0.20240108170749-ec883029c8e6
+	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/charmbracelet/huh v0.3.0
+	github.com/charmbracelet/lipgloss v0.10.0
 	github.com/charmbracelet/log v0.4.0
 	github.com/creativeprojects/go-selfupdate v1.2.0
 	github.com/ldez/go-git-cmd-wrapper/v2 v2.6.0
@@ -18,9 +21,6 @@ require (
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/catppuccin/go v0.2.0 // indirect
-	github.com/charmbracelet/bubbles v0.17.2-0.20240108170749-ec883029c8e6 // indirect
-	github.com/charmbracelet/bubbletea v0.25.0 // indirect
-	github.com/charmbracelet/lipgloss v0.10.0 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
 	github.com/davidmz/go-pageant v1.0.2 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -49,6 +49,7 @@ require (
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect
+	github.com/sahilm/fuzzy v0.1.1-0.20230530133925-c48e322e2a8f // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
