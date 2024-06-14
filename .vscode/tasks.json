@@ -1,0 +1,16 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build and Copy Jupyteach",
+      "type": "shell",
+      "command": "go build -o jupyteach . && rm -rf ~/bin/jupyteach && cp ./jupyteach ~/bin",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [],
+      "detail": "Build the Go project and copy the output to ~/bin"
+    }
+  ]
+}
