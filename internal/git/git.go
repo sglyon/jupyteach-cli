@@ -57,7 +57,7 @@ func Init(path string) error {
 func CheckCleanFatal(path string) {
 	clean, err := IsClean(path)
 	if err != nil {
-		log.Printf("Error checking if repo is clean, verify that you are in a git repository and `git` is installed\n")
+		log.Warn("Error checking if repo is clean, verify that you are in a git repository and `git` is installed\n")
 		log.Fatal(err)
 	}
 
@@ -116,7 +116,7 @@ func CommitTime(path, sha string) (int64, error) {
 			g.AddOptions("-s")
 			g.AddOptions("--format=%ct")
 			g.AddOptions(sha)
-			lib.Debug(g)
+			// lib.Debug(g)
 		})
 		return errOut
 	})
@@ -161,7 +161,7 @@ func ChangesSinceCommit(path, sha string) (map[string]string, error) {
 			// git log --pretty=format: --name-status --diff-filter=ACMRT
 			x, errOut = lib.Raw("ls-files", func(g *types.Cmd) {
 				g.AddOptions("--format=A\t%(path)")
-				lib.Debug(g)
+				// lib.Debug(g)
 			})
 			return errOut
 		})
@@ -171,7 +171,7 @@ func ChangesSinceCommit(path, sha string) (map[string]string, error) {
 			x, errOut = lib.Raw("diff", func(g *types.Cmd) {
 				g.AddOptions("--name-status")
 				g.AddOptions(sha)
-				lib.Debug(g)
+				// lib.Debug(g)
 			})
 			return errOut
 		})

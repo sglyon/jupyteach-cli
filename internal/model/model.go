@@ -206,8 +206,6 @@ func (c *CourseYaml) CreateZip(path string) ([]byte, []SpecForZip, error) {
 		{"syllabus.md", filepath.Join(path, "syllabus.md")},
 	}
 
-	log.Printf("These are the lectures %+v\n\n", c.Lectures)
-
 	// loop over c.lectures
 	for _, l := range c.Lectures {
 		// now read `path/directory/_lecture.yml`
