@@ -11,7 +11,9 @@ import (
 	"path/filepath"
 
 	"github.com/charmbracelet/log"
+	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/sglyon/jupyteach/internal/model"
+	"github.com/spf13/viper"
 
 	"gopkg.in/yaml.v2"
 )
@@ -247,4 +249,45 @@ func FilterChanged(changed map[string]string, files []model.SpecForZip) map[stri
 		}
 	}
 	return filtered
+}
+
+func updateServerWithCommitSHA(path, courseSlug string) error {
+	// get sha of latest commit
+	apiKey := viper.GetString("API_KEY")
+	baseURL := viper.GetString("BASE_URL")
+	if apiKey == "" {
+		log.Fatal("API Key not set. Please run `jupyteach login`")
+	}
+
+	sha, err := git.GetLatestCommitSha(path)
+	if err != nil {
+		return fmt.Errorf("Error getting latest commit sha %e", err)
+	}
+	resp, errFinal := requestPostRecordSha(apiKey, baseURL, courseSlug, sha)
+	if errFinal != nil {
+		return fmt.Errorf("Error upating server with most recent sha %e", errFinal)
+	}
+	log.Infof("Server updated with this info: %+v\n", resp)
+	return nil
+}
+
+func commitAllAndUpdateServer(path, courseSlug string) error {
+	committed, err := git.CommitAll(path, "jupyteach cli pull response")
+
+	if err != nil {
+		return err
+	}
+
+	if committed {
+		// TODO: need to DRY this out. Also repeated in push.go
+		log.Info("Successfully committed changes to local git repository")
+		// get sha of latest commit
+		if err := updateServerWithCommitSHA(path, courseSlug); err != nil {
+			return err
+		}
+	} else {
+		log.Info("Update successful. No changes to commit")
+	}
+
+	return nil
 }

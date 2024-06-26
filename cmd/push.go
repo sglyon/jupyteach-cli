@@ -57,8 +57,6 @@ var pushCmd = &cobra.Command{
 			log.Fatalf("Error in GET `/.../push` %e", err)
 		}
 
-		log.Printf("Details: %+v", pushGetResponse)
-
 		// // parse timestamp in form of "2024-03-28T18:05:41Z"
 		// mostRecentUpdateTimestamp, err := time.Parse(time.RFC3339, pushGetResponse.SyncStatusUpdateTimestamp)
 		// if err != nil {
@@ -157,7 +155,6 @@ var pushCmd = &cobra.Command{
 		client := &http.Client{}
 		req.Header.Add("Authorization", "Bearer "+apiKey)
 		header := writer.FormDataContentType()
-		log.Printf("Content-type Header: %s", header)
 		req.Header.Set("Content-Type", header)
 		resp, err := client.Do(req)
 		if err != nil {
@@ -169,31 +166,15 @@ var pushCmd = &cobra.Command{
 			log.Fatalf("Error response from server: %s", resp.Status)
 		}
 
-		log.Infof("Response object: %+v", resp)
-
 		// TODO 2024-05-02 15:53:11: check status code to make sure request was successful
 		if err := unpackZipResponse(resp); err != nil {
 			log.Fatal(err)
 		}
 
-		log.Printf("Pushed changes to server. Some metadata may have changed. ")
+		log.Info("Pushed changes to server")
 
-		committed, err := git.CommitAll(path, "jupyteach cli push response")
-		if committed {
-			log.Info("Successfully committed changes to local git repository")
-			// get sha of latest commit
-			sha, err := git.GetLatestCommitSha(path)
-			if err != nil {
-				log.Fatalf("Error getting latest commit sha %e", err)
-			}
-			resp, errFinal := requestPostRecordSha(apiKey, baseURL, courseSlug, sha)
-			if errFinal != nil {
-				log.Fatalf("Error upating server with most recent sha %e", errFinal)
-			}
-			log.Infof("Server updated with this info: %+v\n", resp)
-		}
-		if err != nil {
-			log.Warn("Failed to create commit. Please use `git` manually to commit changes to repo in directory", "directory", path)
+		if err := commitAllAndUpdateServer(path, courseSlug); err != nil {
+			log.Fatal(err)
 		}
 	},
 }
