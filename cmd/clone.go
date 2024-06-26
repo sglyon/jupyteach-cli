@@ -27,6 +27,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // cloneCmd represents the clone command
@@ -43,6 +44,12 @@ var cloneCmd = &cobra.Command{
 		// 	log.Fatal("Must provide a path")
 		// }
 		path = courseSlug
+
+		apiKey := viper.GetString("API_KEY")
+		baseURL := viper.GetString("BASE_URL")
+		if apiKey == "" {
+			log.Fatal("API Key not set. Please run `jupyteach login`")
+		}
 
 		// We need the path to not exist
 		if _, err := os.Stat(path); !os.IsNotExist(err) {
@@ -69,6 +76,16 @@ var cloneCmd = &cobra.Command{
 
 		if committed {
 			log.Info("Successfully committed changes to local git repository")
+			// get sha of latest commit
+			sha, err := git.GetLatestCommitSha(path)
+			if err != nil {
+				log.Fatalf("Error getting latest commit sha %e", err)
+			}
+			resp, errFinal := requestPostRecordSha(apiKey, baseURL, courseSlug, sha)
+			if errFinal != nil {
+				log.Fatalf("Error upating server with most recent sha %e", errFinal)
+			}
+			log.Infof("Server updated with this info: %+v\n", resp)
 		}
 		if err != nil {
 			log.Warn("Failed to create commit. Please use `git` manually to commit changes to repo in directory", "directory", path)
