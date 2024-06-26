@@ -83,13 +83,8 @@ var pushCmd = &cobra.Command{
 			log.Fatalf("Error getting latest commit sha %e", err)
 		}
 
-		checkSha, errRecent := git.MoreRecentSha(path, pushGetResponse.LastCommitSha, course.CLICommitSHA)
-		if errRecent != nil {
-			log.Fatalf("Error getting the commit time %e", errRecent)
-		}
-
 		// now get list of all files that have changed
-		changed, err := git.ChangesSinceCommit(path, checkSha)
+		changed, err := git.ChangesSinceCommit(path, pushGetResponse.LastCommitSha)
 		if err != nil {
 			log.Fatalf("Error getting changes since last known commit sha %e", err)
 		}

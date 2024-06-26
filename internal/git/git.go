@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -80,6 +81,9 @@ func GetLatestCommitSha(path string) (string, error) {
 }
 
 func MoreRecentSha(path, sha1, sha2 string) (string, error) {
+	if sha1 == "" && sha2 == "" {
+		return sha1, nil
+	}
 	// Check if both SHAs are valid commit hashes
 	sha1Time, err1 := CommitTime(path, sha1)
 	sha2Time, err2 := CommitTime(path, sha2)
@@ -92,14 +96,14 @@ func MoreRecentSha(path, sha1, sha2 string) (string, error) {
 	}
 
 	if err1 != nil && err2 == nil {
-		return sha2, nil
-	}
-
-	if err1 == nil && err2 != nil {
 		return sha1, nil
 	}
 
-	return "", fmt.Errorf("error getting time for both shas")
+	if err1 == nil && err2 != nil {
+		return sha2, nil
+	}
+
+	return "", errors.New("error getting time for both shas")
 }
 
 func CommitTime(path, sha string) (int64, error) {
