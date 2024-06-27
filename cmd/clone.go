@@ -56,16 +56,19 @@ var cloneCmd = &cobra.Command{
 
 		// Now we need to git init inside that path
 		if err := git.Init(path); err != nil {
+			cleanupFailure(path)
 			log.Fatal(err)
 		}
 
 		// Now we are ready to pull
 		if err := doPull(path, courseSlug); err != nil {
+			cleanupFailure(path)
 			log.Fatal(err)
 		}
 		log.Info("Successfully cloned course contents. ", "directory", path)
 
 		if err := commitAllAndUpdateServer(path, courseSlug); err != nil {
+			cleanupFailure(path)
 			log.Fatal(err)
 		}
 	},

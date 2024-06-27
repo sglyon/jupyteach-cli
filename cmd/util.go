@@ -291,3 +291,11 @@ func commitAllAndUpdateServer(path, courseSlug string) error {
 
 	return nil
 }
+
+func cleanupFailure(path string) error {
+	// delete the directory at path
+	if err := os.RemoveAll(path); err != nil {
+		return err
+	}
+	return nil
+}
