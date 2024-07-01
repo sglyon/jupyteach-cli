@@ -374,7 +374,7 @@ func createRepoZip(directory string) ([]byte, error) {
 func getFilesToZipForRepoPush(path string) (map[string]string, error) {
 	out, err := git.ListFiles(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Unable to git ls-files: %e", err)
 	}
 	myMap := git.MakeFileChangeMap(out)
 	myMap[".git"] = "A"

@@ -158,7 +158,7 @@ func MakeFileChangeMap(s string) map[string]string {
 		if line == "" {
 			continue
 		}
-		parts := strings.Split(line, "\t")
+		parts := strings.Fields(line)
 		changecode := toJupyteachChangecode(string(parts[0][0]))
 		if string(parts[0][0]) == "R" && len(parts) == 3 {
 			out[parts[2]] = changecode
@@ -174,8 +174,8 @@ func ListFiles(path string) (string, error) {
 	err := WithDirectory(path, func() error {
 		var errOut error
 		x, errOut = lib.Raw("ls-files", func(g *types.Cmd) {
-			g.AddOptions("--format=A\t%(path)")
-			// lib.Debug(g)
+			g.AddOptions("-t")
+			lib.Debug(g)
 		})
 		return errOut
 	})
