@@ -150,21 +150,47 @@ func toJupyteachChangecode(s string) string {
 	}
 }
 
+func MakeFileChangeMap(s string) map[string]string {
+	xLines := strings.Split(s, "\n")
+	out := make(map[string]string, len(xLines))
+
+	for _, line := range xLines {
+		if line == "" {
+			continue
+		}
+		parts := strings.Split(line, "\t")
+		changecode := toJupyteachChangecode(string(parts[0][0]))
+		if string(parts[0][0]) == "R" && len(parts) == 3 {
+			out[parts[2]] = changecode
+		} else {
+			out[parts[1]] = changecode
+		}
+	}
+	return out
+}
+
+func ListFiles(path string) (string, error) {
+	var x string
+	err := WithDirectory(path, func() error {
+		var errOut error
+		x, errOut = lib.Raw("ls-files", func(g *types.Cmd) {
+			g.AddOptions("--format=A\t%(path)")
+			// lib.Debug(g)
+		})
+		return errOut
+	})
+	if err != nil {
+		return "", err
+	}
+	return x, nil
+}
+
 func ChangesSinceCommit(path, sha string) (map[string]string, error) {
 	var x string
 	var err error
 
 	if sha == "" {
-		// Use a different command for the initial commit
-		err = WithDirectory(path, func() error {
-			var errOut error
-			// git log --pretty=format: --name-status --diff-filter=ACMRT
-			x, errOut = lib.Raw("ls-files", func(g *types.Cmd) {
-				g.AddOptions("--format=A\t%(path)")
-				// lib.Debug(g)
-			})
-			return errOut
-		})
+		x, err = ListFiles(path)
 	} else {
 		err = WithDirectory(path, func() error {
 			var errOut error
@@ -180,22 +206,7 @@ func ChangesSinceCommit(path, sha string) (map[string]string, error) {
 		return nil, err
 	}
 
-	xLines := strings.Split(x, "\n")
-	out := make(map[string]string, len(xLines))
-
-	for _, line := range xLines {
-		if line == "" {
-			continue
-		}
-		parts := strings.Split(line, "\t")
-		changecode := toJupyteachChangecode(string(parts[0][0]))
-		if string(parts[0][0]) == "R" && len(parts) == 3 {
-			out[parts[2]] = changecode
-		} else {
-			out[parts[1]] = changecode
-		}
-	}
-	return out, nil
+	return MakeFileChangeMap(x), nil
 }
 
 func CommitAll(path, message string) (bool, error) {

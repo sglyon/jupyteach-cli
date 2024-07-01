@@ -11,8 +11,6 @@ import (
 	"net/http"
 	"net/textproto"
 
-	"github.com/charmbracelet/log"
-
 	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/sglyon/jupyteach/internal/model"
 	"github.com/spf13/cobra"
@@ -30,18 +28,18 @@ var pushCmd = &cobra.Command{
 		courseSlug := getCourseSlug(args)
 		path, err := cmd.Flags().GetString("path")
 		if err != nil {
-			log.Fatalf("Must provide a path")
+			logger.Fatalf("Must provide a path")
 		}
 		git.CheckCleanFatal(path)
 
 		// Read the `sync_status_update_timestamp` field in `_course.yml`
 		course, err := model.ParseCourseYaml(path)
 		if err != nil {
-			log.Fatalf("Error parsing _course.yaml file %e", err)
+			logger.Fatalf("Error parsing _course.yaml file %e", err)
 		}
 
 		if err := course.CheckLectureDirectories(); err != nil {
-			log.Fatalf("Error checking lecture directories %e", err)
+			logger.Fatalf("Error checking lecture directories %e", err)
 		}
 
 		// Now you can use course.SyncStatusUpdateTimestamp in your code...
@@ -49,18 +47,18 @@ var pushCmd = &cobra.Command{
 		apiKey := viper.GetString("API_KEY")
 		baseURL := viper.GetString("BASE_URL")
 		if apiKey == "" {
-			log.Fatalf("API Key not set. Please run `jupyteach login`")
+			logger.Fatalf("API Key not set. Please run `jupyteach login`")
 		}
 
 		pushGetResponse, err := requestGetPush(apiKey, baseURL, courseSlug)
 		if err != nil {
-			log.Fatalf("Error in GET `/.../push` %e", err)
+			logger.Fatalf("Error in GET `/.../push` %e", err)
 		}
 
 		// // parse timestamp in form of "2024-03-28T18:05:41Z"
 		// mostRecentUpdateTimestamp, err := time.Parse(time.RFC3339, pushGetResponse.SyncStatusUpdateTimestamp)
 		// if err != nil {
-		// 	log.Fatalf("Error parsing timestamp from GET `/.../push` response %e", err)
+		// 	logger.Fatalf("Error parsing timestamp from GET `/.../push` response %e", err)
 		// }
 
 		// courseYamlUpdateTimestamp := course.LastUpdateTimestamp()
@@ -71,20 +69,20 @@ var pushCmd = &cobra.Command{
 			// check if local commit is in history
 			inHistory, _ := git.IsShaInHistory(path, pushGetResponse.LastCommitSha)
 			if !inHistory {
-				log.Fatalf("Latest commit known to server is not in local history. Use `git pull` pull to changes from remote first")
+				logger.Fatalf("Latest commit known to server is not in local history. Use `git pull` pull to changes from remote first")
 			}
 		}
 
 		// now check latest commit sha
 		sha, err := git.GetLatestCommitSha(path)
 		if err != nil {
-			log.Fatalf("Error getting latest commit sha %e", err)
+			logger.Fatalf("Error getting latest commit sha %e", err)
 		}
 
 		// now get list of all files that have changed
 		changed, err := git.ChangesSinceCommit(path, pushGetResponse.LastCommitSha)
 		if err != nil {
-			log.Fatalf("Error getting changes since last known commit sha %e", err)
+			logger.Fatalf("Error getting changes since last known commit sha %e", err)
 		}
 
 		course.LastCommitSHA = sha
@@ -92,7 +90,7 @@ var pushCmd = &cobra.Command{
 		// Now create a zip file
 		zipBytes, files, err := course.CreateZip(path)
 		if err != nil {
-			log.Fatalf("Error creating zip %e", err)
+			logger.Fatalf("Error creating zip %e", err)
 		}
 
 		// filter changed to only include files that are in the zip
@@ -100,7 +98,7 @@ var pushCmd = &cobra.Command{
 
 		changedJsonBytes, err := json.Marshal(filteredChanged)
 		if err != nil {
-			log.Fatalf("Error encoding changes as json object %e", err)
+			logger.Fatalf("Error encoding changes as json object %e", err)
 		}
 
 		// Finally, we need to POST the zip file and changesJSON to the server
@@ -114,7 +112,7 @@ var pushCmd = &cobra.Command{
 		writer := multipart.NewWriter(&buffer)
 
 		if err := writer.WriteField("latest_sha", sha); err != nil {
-			log.Fatalf("Error writing latest_sha to form %e", err)
+			logger.Fatalf("Error writing latest_sha to form %e", err)
 		}
 
 		// Add the zip file to the request
@@ -123,10 +121,10 @@ var pushCmd = &cobra.Command{
 		h.Set("Content-Type", "application/zip")
 		zipPart, err := writer.CreatePart(h)
 		if err != nil {
-			log.Fatalf("Error creating course.zip form item %e", err)
+			logger.Fatalf("Error creating course.zip form item %e", err)
 		}
 		if _, err := zipPart.Write(zipBytes); err != nil {
-			log.Fatalf("Error writing course.zip to form %e", err)
+			logger.Fatalf("Error writing course.zip to form %e", err)
 		}
 
 		// Add the changed.json file to the request
@@ -135,21 +133,21 @@ var pushCmd = &cobra.Command{
 		h.Set("Content-Type", "application/json")
 		jsonPart, err := writer.CreatePart(h)
 		if err != nil {
-			log.Fatalf("Error creating changed.json form item %e", err)
+			logger.Fatalf("Error creating changed.json form item %e", err)
 		}
 		if _, err := jsonPart.Write(changedJsonBytes); err != nil {
-			log.Fatalf("Error writing changed.json to form %e", err)
+			logger.Fatalf("Error writing changed.json to form %e", err)
 		}
 
 		// Close the writer to finalize the multipart body
 		if err := writer.Close(); err != nil {
-			log.Fatalf("Error finalizing form %e", err)
+			logger.Fatalf("Error finalizing form %e", err)
 		}
 
 		url := fmt.Sprintf("%s/api/v1/course/%s/push", baseURL, courseSlug)
 		req, err := http.NewRequest("POST", url, &buffer)
 		if err != nil {
-			log.Fatalf("Error creating request with body %e", err)
+			logger.Fatalf("Error creating request with body %e", err)
 		}
 
 		client := &http.Client{}
@@ -158,23 +156,23 @@ var pushCmd = &cobra.Command{
 		req.Header.Set("Content-Type", header)
 		resp, err := client.Do(req)
 		if err != nil {
-			log.Fatalf("Error sending request %e", err)
+			logger.Fatalf("Error sending request %e", err)
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode >= 400 {
-			log.Fatalf("Error response from server: %s", resp.Status)
+			logger.Fatalf("Error response from server: %s", resp.Status)
 		}
 
 		// TODO 2024-05-02 15:53:11: check status code to make sure request was successful
 		if err := unpackZipResponse(resp); err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 
-		log.Info("Pushed changes to server")
+		logger.Info("Pushed changes to server")
 
-		if err := commitAllAndUpdateServer(path, courseSlug); err != nil {
-			log.Fatal(err)
+		if err := commitAllAndUpdateServer(path, courseSlug, "jupyteach cli push response"); err != nil {
+			logger.Fatal(err)
 		}
 	},
 }

@@ -22,12 +22,16 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"net/http"
 	"os"
 
-	"github.com/charmbracelet/log"
 	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/spf13/cobra"
 )
+
+func doClone(path, courseSlug string) (int, error) {
+	return doPullOrClone(path, courseSlug, "clone")
+}
 
 // cloneCmd represents the clone command
 var cloneCmd = &cobra.Command{
@@ -40,36 +44,40 @@ var cloneCmd = &cobra.Command{
 		courseSlug := args[0]
 		// path, err := cmd.Flags().GetString("path")
 		// if err != nil {
-		// 	log.Fatal("Must provide a path")
+		// 	logger.Fatal("Must provide a path")
 		// }
 		path = courseSlug
 
 		// We need the path to not exist
 		if _, err := os.Stat(path); !os.IsNotExist(err) {
-			log.Fatal("Path already exists. Please provide a new path")
+			logger.Fatal("Path already exists. Please provide a new path")
 		}
 
 		// now let's mkdir the path
 		if err := os.MkdirAll(path, 0o755); err != nil {
-			log.Fatal(err)
-		}
-
-		// Now we need to git init inside that path
-		if err := git.Init(path); err != nil {
-			cleanupFailure(path)
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 
 		// Now we are ready to pull
-		if err := doPull(path, courseSlug); err != nil {
+		retCode, err := doClone(path, courseSlug)
+		if err != nil {
 			cleanupFailure(path)
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
-		log.Info("Successfully cloned course contents. ", "directory", path)
+		logger.Info("Successfully cloned course contents. ", "directory", path)
 
-		if err := commitAllAndUpdateServer(path, courseSlug); err != nil {
-			cleanupFailure(path)
-			log.Fatal(err)
+		if retCode == http.StatusCreated {
+			// we only need to init the git repo if it was the first clone
+			// subsequent clones will have the repo already initialized
+			if err := git.Init(path); err != nil {
+				cleanupFailure(path)
+				logger.Fatal(err)
+			}
+
+			if err := commitAllAndUpdateServer(path, courseSlug, "jupyteach cli clone response"); err != nil {
+				cleanupFailure(path)
+				logger.Fatal(err)
+			}
 		}
 	},
 }

@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/charmbracelet/log"
 	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/sglyon/jupyteach/internal/model"
 	"github.com/spf13/viper"
@@ -149,26 +151,26 @@ func unpackZip(zipReader *zip.Reader) error {
 		// Open the file inside the zip archive
 		zippedFile, err := file.Open()
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 		defer zippedFile.Close()
 
 		// Create all necessary directories in the path
 		outputDir := filepath.Dir(outputFilePath)
 		if err := os.MkdirAll(outputDir, 0o755); err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 
 		outputFile, err := os.OpenFile(outputFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, file.Mode())
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 		defer outputFile.Close()
 
 		// Copy the contents of the file to the current directory
 		_, err = io.Copy(outputFile, zippedFile)
 		if err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 	}
 	return nil
@@ -234,7 +236,7 @@ func getCourseSlug(args []string) string {
 	}
 
 	if len(args) == 0 {
-		log.Fatal("No course slug provided")
+		logger.Fatal("No course slug provided")
 	}
 
 	return args[0]
@@ -256,7 +258,7 @@ func updateServerWithCommitSHA(path, courseSlug string) error {
 	apiKey := viper.GetString("API_KEY")
 	baseURL := viper.GetString("BASE_URL")
 	if apiKey == "" {
-		log.Fatal("API Key not set. Please run `jupyteach login`")
+		logger.Fatal("API Key not set. Please run `jupyteach login`")
 	}
 
 	sha, err := git.GetLatestCommitSha(path)
@@ -267,12 +269,12 @@ func updateServerWithCommitSHA(path, courseSlug string) error {
 	if errFinal != nil {
 		return fmt.Errorf("Error upating server with most recent sha %e", errFinal)
 	}
-	log.Infof("Server updated with this info: %+v\n", resp)
+	logger.Infof("Server updated with this info: %+v\n", resp)
 	return nil
 }
 
-func commitAllAndUpdateServer(path, courseSlug string) error {
-	committed, err := git.CommitAll(path, "jupyteach cli pull response")
+func commitAllAndUpdateServer(path, courseSlug, msg string) error {
+	committed, err := git.CommitAll(path, msg)
 
 	if err != nil {
 		return err
@@ -280,22 +282,185 @@ func commitAllAndUpdateServer(path, courseSlug string) error {
 
 	if committed {
 		// TODO: need to DRY this out. Also repeated in push.go
-		log.Info("Successfully committed changes to local git repository")
+		logger.Info("Successfully committed changes to local git repository")
 		// get sha of latest commit
 		if err := updateServerWithCommitSHA(path, courseSlug); err != nil {
 			return err
 		}
 	} else {
-		log.Info("Update successful. No changes to commit")
+		logger.Info("Update successful. No changes to commit")
 	}
 
+	return postRepoAsZip(path, courseSlug)
+}
+
+// zipDirectory zips the given directory and all its subdirectories, returning the zip contents as a byte slice.
+func createRepoZip(directory string) ([]byte, error) {
+
+	files, errList := getFilesToZipForRepoPush(path)
+	if errList != nil {
+		return nil, errList
+	}
+
+	buf := new(bytes.Buffer)
+	zipWriter := zip.NewWriter(buf)
+
+	err := filepath.Walk(directory, func(filePath string, info os.FileInfo, err error) error {
+
+		// strip prefix `directory` from filePath
+		relFilePath := strings.TrimPrefix(filePath, directory+string(filepath.Separator))
+		if directory != "." {
+			relFilePath = strings.TrimPrefix(relFilePath, directory)
+		}
+		isInGitDir := strings.HasPrefix(relFilePath, ".git")
+		_, isFileInMap := files[relFilePath]
+
+		if !isFileInMap && !isInGitDir {
+			logger.Debugf("Skipping %s", relFilePath)
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+
+		}
+
+		logger.Debugf("zipping: %s", filePath)
+
+		// Create a zip header based on the file info
+		header, err := zip.FileInfoHeader(info)
+		if err != nil {
+			return err
+		}
+		header.Name, err = filepath.Rel(directory, filePath)
+		if err != nil {
+			return err
+		}
+		header.Method = zip.Deflate
+
+		// Create a writer for the zip file
+		writer, err := zipWriter.CreateHeader(header)
+		if err != nil {
+			return err
+		}
+
+		// Open the file to be zipped
+		file, err := os.Open(filePath)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		// Copy the file contents to the zip writer
+		_, err = io.Copy(writer, file)
+		return err
+	})
+
+	if err != nil {
+		zipWriter.Close()
+		return nil, err
+	}
+
+	err = zipWriter.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func getFilesToZipForRepoPush(path string) (map[string]string, error) {
+	out, err := git.ListFiles(path)
+	if err != nil {
+		return nil, err
+	}
+	myMap := git.MakeFileChangeMap(out)
+	myMap[".git"] = "A"
+	return myMap, nil
+}
+
+func postRepoAsZip(path, courseSlug string) error {
+	apiKey := viper.GetString("API_KEY")
+	baseURL := viper.GetString("BASE_URL")
+	if apiKey == "" {
+		logger.Fatal("API Key not set. Please run `jupyteach login`")
+	}
+
+	// Now create a zip file
+	zipBytes, err := createRepoZip(path)
+	if err != nil {
+		return fmt.Errorf("Error creating zip %e", err)
+	}
+
+	var buffer bytes.Buffer
+	writer := multipart.NewWriter(&buffer)
+
+	// Add the zip file to the request
+	h := textproto.MIMEHeader{}
+	h.Set("Content-Disposition", `form-data; name="repo.zip"; filename="repo.zip"`)
+	h.Set("Content-Type", "application/zip")
+	zipPart, err := writer.CreatePart(h)
+	if err != nil {
+		return fmt.Errorf("Error creating course.zip form item %e", err)
+	}
+	if _, err := zipPart.Write(zipBytes); err != nil {
+		return fmt.Errorf("Error writing course.zip to form %e", err)
+	}
+
+	// Close the writer to finalize the multipart body
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("Error finalizing form %e", err)
+	}
+
+	url := fmt.Sprintf("%s/api/v1/course/%s/upload_git_dir", baseURL, courseSlug)
+	req, err := http.NewRequest("POST", url, &buffer)
+	if err != nil {
+		return fmt.Errorf("Error creating request with body %e", err)
+	}
+
+	client := &http.Client{}
+	req.Header.Add("Authorization", "Bearer "+apiKey)
+	header := writer.FormDataContentType()
+	req.Header.Set("Content-Type", header)
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Error sending request %e", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("Error response from server: %s", resp.Status)
+	}
+
+	logger.Info("Pushed git repo to server")
+
 	return nil
+
 }
 
 func cleanupFailure(path string) error {
 	// delete the directory at path
 	if err := os.RemoveAll(path); err != nil {
 		return err
+	}
+	return nil
+}
+
+func checkRespError(resp *http.Response) error {
+	// copy the response body to a buffer so we can read it twice
+	if resp.StatusCode >= 400 {
+		var buf bytes.Buffer
+		if _, err := io.Copy(&buf, resp.Body); err != nil {
+			return err
+		}
+		errVal := make(map[string]interface{})
+		err := json.Unmarshal(buf.Bytes(), &errVal)
+		if err != nil {
+			return err
+		}
+		return fmt.Errorf("Error making request: %+v", errVal)
 	}
 	return nil
 }

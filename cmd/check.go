@@ -4,7 +4,6 @@ Copyright © 2024 Spencer Lyon spencerlyon2@gmail.com
 package cmd
 
 import (
-	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 )
 
@@ -13,8 +12,14 @@ var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Validate the structure of the directory and content of _course.yml and _lecture.yml files.",
 	Long:  `TODO: long description`,
+	Args:  cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Debug("check called")
+		logger.Debug("check called")
+		path, err := cmd.Flags().GetString("path")
+		if err != nil {
+			logger.Fatalf("Must provide a path")
+		}
+		createRepoZip(path)
 	},
 }
 

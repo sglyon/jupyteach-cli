@@ -25,7 +25,6 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/log"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -54,7 +53,7 @@ to quickly create a Cobra application.`,
 				Value(&wantsToReAuth)
 
 			if err := reAuthSelect.Run(); err != nil {
-				log.Fatalf("Error: %s", err)
+				logger.Fatalf("Error: %s", err)
 				return
 			}
 			if !wantsToReAuth {
@@ -74,16 +73,16 @@ to quickly create a Cobra application.`,
 		)
 
 		if err := form.Run(); err != nil {
-			log.Fatalf("Error: %s", err)
+			logger.Fatalf("Error: %s", err)
 		}
 
 		viper.Set("API_KEY", newApiKey)
 		// now we need to write this to the config file
 		if err := viper.WriteConfig(); err != nil {
-			log.Fatalf("Error writing config file: %v", err)
+			logger.Fatalf("Error writing config file: %v", err)
 		}
 
-		log.Info("Successfully saved API key to config file")
+		logger.Info("Successfully saved API key to config file")
 	},
 }
 

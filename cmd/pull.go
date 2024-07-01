@@ -8,46 +8,58 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/charmbracelet/log"
-
 	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 func doPull(path, courseSlug string) error {
-	git.CheckCleanFatal(path)
+	_, err := doPullOrClone(path, courseSlug, "pull")
+	return err
+}
+
+func doPullOrClone(path, courseSlug, operation string) (int, error) {
+	if operation != "pull" && operation != "clone" {
+		return 1, errors.New("operation must be either 'pull' or 'clone'")
+	}
+	if operation == "pull" {
+		git.CheckCleanFatal(path)
+	}
+	// We will have a bare directory if are to clone
 
 	apiKey := viper.GetString("API_KEY")
 	baseURL := viper.GetString("BASE_URL")
 	if apiKey == "" {
-		return errors.New("API Key not set. Please run `jupyteach login`")
+		return 1, errors.New("API Key not set. Please run `jupyteach login`")
 	}
 
-	url := fmt.Sprintf("%s/api/v1/course/%s/pull", baseURL, courseSlug)
+	url := fmt.Sprintf("%s/api/v1/course/%s/%s", baseURL, courseSlug, operation)
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return err
+		return 1, err
 	}
 
 	req.Header.Add("Authorization", "Bearer "+apiKey)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err
+		return resp.StatusCode, err
 	}
 	defer resp.Body.Close()
 
-	log.Info("Response received", "statusCode", resp.StatusCode)
+	logger.Info("Response received", "statusCode", resp.StatusCode)
 
+	if err := checkRespError(resp); err != nil {
+		return resp.StatusCode, err
+	}
 	if err := git.WithDirectory(path, func() error {
 		return unpackZipResponse(resp)
 	}); err != nil {
-		return err
+		return resp.StatusCode, err
 	}
 
-	return nil
+	return resp.StatusCode, nil
 }
 
 // pullCmd represents the pull command
@@ -60,17 +72,17 @@ var pullCmd = &cobra.Command{
 		courseSlug := getCourseSlug(args)
 		path, err := cmd.Flags().GetString("path")
 		if err != nil {
-			log.Fatal("Must provide a path")
+			logger.Fatal("Must provide a path")
 		}
 
 		if err := doPull(path, courseSlug); err != nil {
-			log.Fatal(err)
+			logger.Fatal(err)
 		}
 
-		log.Info("Successfully pulled course contents.")
+		logger.Info("Successfully pulled course contents.")
 
-		if err := commitAllAndUpdateServer(path, courseSlug); err != nil {
-			log.Fatal(err)
+		if err := commitAllAndUpdateServer(path, courseSlug, "jupyteach cli pull response"); err != nil {
+			logger.Fatal(err)
 		}
 	},
 }

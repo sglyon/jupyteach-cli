@@ -14,13 +14,24 @@ import (
 var (
 	cfgFile string
 	path    string
+	debug   bool
 )
+
+var logger = log.NewWithOptions(os.Stderr, log.Options{
+	ReportTimestamp: true,
+})
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "jupyteach",
 	Short: "Command line interface to interact with the Jupyteach platform",
 	Long:  `TODO: long description`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if debug {
+			logger.SetLevel(log.DebugLevel)
+			logger.SetReportCaller(true)
+		}
+	},
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
@@ -54,6 +65,8 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.jupyteach.yaml)")
 	rootCmd.PersistentFlags().StringVar(&path, "path", ".", "Path of course contents")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "enable debug logging")
+
 }
 
 // initConfig reads in config file and ENV variables if set.
