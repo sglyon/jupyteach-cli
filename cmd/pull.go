@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/sglyon/jupyteach/internal/git"
 	"github.com/spf13/cobra"
@@ -52,6 +53,18 @@ func doPullOrClone(path, courseSlug, operation string) (int, error) {
 
 	if err := checkRespError(resp); err != nil {
 		return resp.StatusCode, err
+	}
+	// http.StatusCreated will be returned if the server created a new
+	// zip file from the database. If we get http.StatusOk, then the server
+	// will have returned an existing zip file directory.
+	if resp.StatusCode == http.StatusOK {
+		// need to delete the `.git` directory under `path` if it exists
+		if err := git.WithDirectory(path, func() error {
+			return os.RemoveAll(".git/objects")
+		}); err != nil {
+			return resp.StatusCode, fmt.Errorf("error removing .git/objects: %w", err)
+		}
+
 	}
 	if err := git.WithDirectory(path, func() error {
 		return unpackZipResponse(resp)

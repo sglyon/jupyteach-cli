@@ -287,11 +287,14 @@ func commitAllAndUpdateServer(path, courseSlug, msg string) error {
 		if err := updateServerWithCommitSHA(path, courseSlug); err != nil {
 			return err
 		}
+
+		// we made a commit, so we need to push to the server
+		return postRepoAsZip(path, courseSlug)
 	} else {
 		logger.Info("Update successful. No changes to commit")
 	}
 
-	return postRepoAsZip(path, courseSlug)
+	return nil
 }
 
 // zipDirectory zips the given directory and all its subdirectories, returning the zip contents as a byte slice.
