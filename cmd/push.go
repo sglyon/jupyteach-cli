@@ -171,8 +171,20 @@ var pushCmd = &cobra.Command{
 
 		logger.Info("Pushed changes to server")
 
-		if err := commitAllAndUpdateServer(path, courseSlug, "jupyteach cli push response"); err != nil {
+		_, postedZip, err := commitAllAndUpdateServer(path, courseSlug, "jupyteach cli push response")
+
+		if err != nil {
 			logger.Fatal(err)
+		}
+
+		if !postedZip {
+			// We must always post the zip to the server on push because we need
+			// any local commits we just pushed into the db to be available to
+			// other git/cli clients to pull or clone
+
+			if err := postRepoAsZip(path, courseSlug); err != nil {
+				logger.Fatal(err)
+			}
 		}
 	},
 }

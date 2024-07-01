@@ -94,7 +94,7 @@ var pullCmd = &cobra.Command{
 
 		logger.Info("Successfully pulled course contents.")
 
-		if err := commitAllAndUpdateServer(path, courseSlug, "jupyteach cli pull response"); err != nil {
+		if _, _, err := commitAllAndUpdateServer(path, courseSlug, "jupyteach cli pull response"); err != nil {
 			logger.Fatal(err)
 		}
 	},

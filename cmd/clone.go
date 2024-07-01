@@ -74,7 +74,7 @@ var cloneCmd = &cobra.Command{
 				logger.Fatal(err)
 			}
 
-			if err := commitAllAndUpdateServer(path, courseSlug, "jupyteach cli clone response"); err != nil {
+			if _, _, err := commitAllAndUpdateServer(path, courseSlug, "jupyteach cli clone response"); err != nil {
 				cleanupFailure(path)
 				logger.Fatal(err)
 			}

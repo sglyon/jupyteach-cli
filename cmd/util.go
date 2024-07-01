@@ -273,11 +273,11 @@ func updateServerWithCommitSHA(path, courseSlug string) error {
 	return nil
 }
 
-func commitAllAndUpdateServer(path, courseSlug, msg string) error {
-	committed, err := git.CommitAll(path, msg)
+func commitAllAndUpdateServer(path, courseSlug, msg string) (committed, postedZip bool, err error) {
+	committed, err = git.CommitAll(path, msg)
 
 	if err != nil {
-		return err
+		return committed, postedZip, err
 	}
 
 	if committed {
@@ -285,16 +285,19 @@ func commitAllAndUpdateServer(path, courseSlug, msg string) error {
 		logger.Info("Successfully committed changes to local git repository")
 		// get sha of latest commit
 		if err := updateServerWithCommitSHA(path, courseSlug); err != nil {
-			return err
+			return committed, postedZip, err
 		}
 
 		// we made a commit, so we need to push to the server
-		return postRepoAsZip(path, courseSlug)
+		err = postRepoAsZip(path, courseSlug)
+		if err == nil {
+			postedZip = true
+		}
 	} else {
 		logger.Info("Update successful. No changes to commit")
 	}
 
-	return nil
+	return committed, postedZip, err
 }
 
 // zipDirectory zips the given directory and all its subdirectories, returning the zip contents as a byte slice.
