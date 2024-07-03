@@ -236,7 +236,7 @@ func getCourseSlug(args []string) string {
 	}
 
 	if len(args) == 0 {
-		logger.Fatal("No course slug provided")
+		logger.Fatal("No course slug provided and no slug found in _course.yml file. Please check _course.yml")
 	}
 
 	return args[0]
